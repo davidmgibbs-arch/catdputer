@@ -38,17 +38,17 @@ void configurationPortal(){
  prefs.putString("ssid",ssid);prefs.putString("pass",password);prefs.putString("key",key);prefs.putString("model",model);
  server.send(200,"text/plain","Saved. Reconnect your phone to your usual Wi-Fi.");saved=true;
  });
- server.begin();ui.setSecret(false);ui.showAssistantMessage(String("Join MistralPuter-Setup\nPassword: ")+pin+"\nOpen http://192.168.4.1\nTimeout: 5 minutes");
- unsigned long started=millis();while(!saved && millis()-started<300000){server.handleClient();delay(10);}
+ server.begin();ui.setSecret(false);ui.showAssistantMessage(String("Join MistralPuter-Setup\nPassword: ")+pin+"\nOpen http://192.168.4.1\nEnter: skip (if configured)\nTimeout: 5 minutes");
+ unsigned long started=millis();while(!saved && millis()-started<300000){server.handleClient();M5Cardputer.update();ui.handleKeyboardInput();if(ui.userJustPressedEnter){ui.userJustPressedEnter=false;ui.lastEnteredText="";if(!ssid.isEmpty() && !key.isEmpty())break;}delay(10);}
  delay(500);server.stop();WiFi.softAPdisconnect(true);stage=0;
  if(saved || (!ssid.isEmpty() && !key.isEmpty()))connectNetwork();else ui.showAssistantMessage("Setup timed out. Type :setup to retry.");
 }
 void prompt(int n,const String& message,bool secret=false){stage=n;ui.setSecret(secret);ui.showAssistantMessage(message);}
 void setup(){
- auto cfg=M5.config();M5Cardputer.begin(cfg,true);M5Cardputer.Display.setRotation(3);
+ auto cfg=M5.config();M5Cardputer.begin(cfg,true);M5Cardputer.Display.setRotation(0);
  static M5Canvas canvas(&M5Cardputer.Display);canvas.createSprite(M5Cardputer.Display.width(),M5Cardputer.Display.height());canvas.setTextSize(1);ui.init(&canvas);
  prefs.begin("mistral",false);ssid=prefs.getString("ssid","");password=prefs.getString("pass","");key=prefs.getString("key","");model=prefs.getString("model","mistral-small-latest");
- if(ssid.isEmpty() || key.isEmpty())configurationPortal();else connectNetwork();
+ configurationPortal();
 }
 void loop(){
  M5Cardputer.update();ui.handleKeyboardInput();if(!ui.userJustPressedEnter)return;ui.userJustPressedEnter=false;String input=ui.lastEnteredText;ui.lastEnteredText="";
@@ -57,8 +57,8 @@ void loop(){
  if(stage==2){password=input;prefs.putString("ssid",ssid);prefs.putString("pass",password);if(key.isEmpty()){prompt(3,"Enter Mistral API key:",true);return;}stage=0;ui.setSecret(false);connectNetwork();return;}
  if(stage==3){if(input.isEmpty()){prompt(3,"API key cannot be empty:",true);return;}key=input;prefs.putString("key",key);stage=0;ui.setSecret(false);connectNetwork();return;}
  if(stage==4){if(!input.isEmpty()){model=input;prefs.putString("model",model);}stage=0;ui.showAssistantMessage("Model: "+model);return;}
- if(input==":wifi"){prompt(1,"Enter Wi-Fi SSID:");return;}
- if(input==":key"){prompt(3,"Enter new Mistral API key:",true);return;}
+ if(input==":wifi"){configurationPortal();return;}
+ if(input==":key"){configurationPortal();return;}
  if(input==":model"){prompt(4,"Enter model ID:");return;}
  if(input==":new"){history.clear();ui.showAssistantMessage("New conversation.");return;}
  if(input==":help"){ui.showAssistantMessage(":setup  Phone setup\n:wifi  Wi-Fi setup\n:key  API key\n:model  Model ID\n:new  Clear chat\n:erase  Erase settings\nFn + ; / .  Scroll");return;}
